@@ -14,8 +14,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get admin credentials from environment variables
-ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
-ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+if "ADMIN_USERNAME" in st.secrets and "ADMIN_PASSWORD" in st.secrets:
+    ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
+    ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+else:
+    st.error("Admin credentials not found in secrets. Please check your secrets.toml file.")
+    st.stop()
 
 # Initialize face analyzer with caching
 @st.cache_resource
