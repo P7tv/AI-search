@@ -253,6 +253,11 @@ def main():
     
     st.title("Face Recognition App 👤")
     
+    # Initialize components
+    status = st.empty()
+    progress = st.progress(0)
+    face_analyzer = init_face_analyzer()  # ย้ายการ initialize มาที่นี่
+    
     # Initialize session state for login
     if "is_admin" not in st.session_state:
         st.session_state.is_admin = False
@@ -313,9 +318,7 @@ def main():
         st.sidebar.warning("Please login as Admin to access admin features")
     
     # Load database from selected album
-    status = st.empty()
-    progress = st.progress(0)
-    face_analyzer = init_face_analyzer()
+    status.text("Loading database...")
     album_names = [name for name in os.listdir("albums") if os.path.isdir(os.path.join("albums", name))]
     selected_album = st.sidebar.selectbox("Select album", album_names, key="select_album_main")
     database_dir = os.path.join("albums", selected_album)  # ใช้โฟลเดอร์ของ album ที่เลือก
