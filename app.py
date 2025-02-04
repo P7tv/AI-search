@@ -225,11 +225,24 @@ def view_album_images(album_name):
                     st.image(img, caption=img_name)
 
 def check_admin(username, password):
-    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        st.session_state.is_admin = True
+        return True
+    else:
+        st.session_state.is_admin = False
+        return False
 
 def reload_database(album_name, face_analyzer):
     database_dir = os.path.join("albums", album_name)
     return load_database_images(database_dir, face_analyzer)
+
+def delete_album(album_name):
+    album_dir = os.path.join("albums", album_name)
+    if os.path.exists(album_dir):
+        shutil.rmtree(album_dir)
+        st.success(f"Deleted album: {album_name}")
+    else:
+        st.error(f"Album '{album_name}' does not exist")
 
 def main():
     st.set_page_config(
@@ -240,20 +253,30 @@ def main():
     
     st.title("Face Recognition App 👤")
     
-    # Initialize components
-    status = st.empty()
-    progress = st.progress(0)
-    face_analyzer = init_face_analyzer()
+    # Initialize session state for login
+    if "is_admin" not in st.session_state:
+        st.session_state.is_admin = False
     
     # Login section
     st.sidebar.header("Admin Login")
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
-    is_admin = check_admin(username, password)
+    if st.sidebar.button("Login"):
+        if check_admin(username, password):
+            st.sidebar.success("Logged in as Admin")
+        else:
+            st.sidebar.error("Invalid username or password")
     
-    if is_admin:
-        st.sidebar.success("Logged in as Admin")
-        
+    # Logout button
+    if st.session_state.is_admin:
+        if st.sidebar.button("Logout"):
+            st.session_state.is_admin = False
+            st.sidebar.success("Logged out successfully")
+    
+    # Rest of the app logic
+    if st.session_state.is_admin:
+        # Admin functionality
+        st.sidebar.header("Admin Panel")
         # Create new album section
         st.sidebar.header("Create New Album")
         new_album_name = st.sidebar.text_input("Enter album name")
@@ -280,11 +303,19 @@ def main():
         folder_path = st.sidebar.text_input("Enter folder path to upload")
         if st.sidebar.button("Upload Folder") and selected_album and folder_path:
             database = upload_folder_to_album(selected_album, folder_path, face_analyzer)
+        
+        # Delete album section
+        st.sidebar.header("Delete Album")
+        album_to_delete = st.sidebar.selectbox("Select album to delete", album_names, key="select_album_delete")
+        if st.sidebar.button("Delete Album"):
+            delete_album(album_to_delete)
     else:
-        st.sidebar.warning("Please login as Admin to create albums and upload images")
+        st.sidebar.warning("Please login as Admin to access admin features")
     
     # Load database from selected album
-    status.text("Loading database...")
+    status = st.empty()
+    progress = st.progress(0)
+    face_analyzer = init_face_analyzer()
     album_names = [name for name in os.listdir("albums") if os.path.isdir(os.path.join("albums", name))]
     selected_album = st.sidebar.selectbox("Select album", album_names, key="select_album_main")
     database_dir = os.path.join("albums", selected_album)  # ใช้โฟลเดอร์ของ album ที่เลือก
