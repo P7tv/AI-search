@@ -1,0 +1,10 @@
+flask
+opencv-python-headless
+insightface
+numpy
+torch
+onnxruntime
+streamlit
+pillow
+python-dotenv
+PyGithub
