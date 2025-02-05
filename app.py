@@ -134,7 +134,7 @@ def display_results(matches, cols=3):
         return
     
     # กรองเฉพาะ matches ที่มีความคล้ายเกิน 25%
-    filtered_matches = [m for m in matches if m.get('similarity', 0) * 100 >= 25]
+    filtered_matches = [m for m in matches if m.get('similarity', 0) * 100 >= 10]
     
     if not filtered_matches:
         st.write("No matches above 25% similarity")
