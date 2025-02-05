@@ -9,6 +9,8 @@ import torch
 import random
 import shutil
 from dotenv import load_dotenv
+from github import Github
+import base64
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,6 +19,8 @@ load_dotenv()
 if "ADMIN_USERNAME" in st.secrets and "ADMIN_PASSWORD" in st.secrets:
     ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
     ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+    GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+    GITHUB_REPO = st.secrets["GITHUB_REPO"]
 else:
     st.error("Admin credentials not found in secrets. Please check your secrets.toml file.")
     st.stop()
@@ -169,7 +173,10 @@ def upload_to_album(album_name, uploaded_files, face_analyzer):
         file_path = os.path.join(album_dir, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        uploaded_count += 1
+        
+        # Upload to GitHub
+        if upload_to_github(album_name, uploaded_file.name, uploaded_file.getvalue()):
+            uploaded_count += 1
     
     st.success(f"Uploaded {uploaded_count} files to {album_name}")
     return reload_database(album_name, face_analyzer)
@@ -243,6 +250,30 @@ def delete_album(album_name):
         st.success(f"Deleted album: {album_name}")
     else:
         st.error(f"Album '{album_name}' does not exist")
+
+def upload_to_github(album_name, file_name, file_data):
+    try:
+        # Initialize GitHub
+        g = Github(GITHUB_TOKEN)
+        repo = g.get_repo(GITHUB_REPO)
+        
+        # Create path in GitHub
+        path = f"AI-search/albums/{album_name}/{file_name}"
+        
+        # Encode file data to base64
+        encoded_data = base64.b64encode(file_data).decode("utf-8")
+        
+        # Create or update file in GitHub
+        try:
+            contents = repo.get_contents(path)
+            repo.update_file(path, f"Update {file_name}", encoded_data, contents.sha)
+        except:
+            repo.create_file(path, f"Add {file_name}", encoded_data, branch="main")
+        
+        return True
+    except Exception as e:
+        st.error(f"Error uploading to GitHub: {str(e)}")
+        return False
 
 def main():
     st.set_page_config(
