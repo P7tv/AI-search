@@ -275,6 +275,48 @@ def upload_to_github(album_name, file_name, file_data):
         st.error(f"Error uploading to GitHub: {str(e)}")
         return False
 
+def upload_all_to_github(github_token, album_name):
+    try:
+        # Initialize GitHub
+        g = Github(github_token)
+        repo = g.get_repo(GITHUB_REPO)
+        
+        # Get album directory
+        album_dir = os.path.join("albums", album_name)
+        if not os.path.exists(album_dir):
+            st.error(f"Album '{album_name}' does not exist")
+            return False
+        
+        # Get all images in the album
+        images = [f for f in os.listdir(album_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        if not images:
+            st.warning(f"No images found in album '{album_name}'")
+            return False
+        
+        # Upload each image to GitHub
+        for img_name in images:
+            img_path = os.path.join(album_dir, img_name)
+            with open(img_path, "rb") as f:
+                file_data = f.read()
+            
+            # Create path in GitHub
+            path = f"AI-search/albums/{album_name}/{img_name}"
+            
+            # Encode file data to base64
+            encoded_data = base64.b64encode(file_data).decode("utf-8")
+            
+            # Create or update file in GitHub
+            try:
+                contents = repo.get_contents(path)
+                repo.update_file(path, f"Update {img_name}", encoded_data, contents.sha)
+            except:
+                repo.create_file(path, f"Add {img_name}", encoded_data, branch="main")
+        
+        return True
+    except Exception as e:
+        st.error(f"Error uploading to GitHub: {str(e)}")
+        return False
+
 def main():
     st.set_page_config(
         page_title="Face Recognition",
@@ -287,7 +329,7 @@ def main():
     # Initialize components
     status = st.empty()
     progress = st.progress(0)
-    face_analyzer = init_face_analyzer()  # ย้ายการ initialize มาที่นี่
+    face_analyzer = init_face_analyzer()
     
     # Initialize session state for login
     if "is_admin" not in st.session_state:
@@ -313,6 +355,10 @@ def main():
     if st.session_state.is_admin:
         # Admin functionality
         st.sidebar.header("Admin Panel")
+        
+        # GitHub token input
+        github_token = st.sidebar.text_input("Enter GitHub Token", type="password")
+        
         # Create new album section
         st.sidebar.header("Create New Album")
         new_album_name = st.sidebar.text_input("Enter album name")
@@ -345,6 +391,13 @@ def main():
         album_to_delete = st.sidebar.selectbox("Select album to delete", album_names, key="select_album_delete")
         if st.sidebar.button("Delete Album"):
             delete_album(album_to_delete)
+        
+        # Upload to GitHub button
+        if st.sidebar.button("Upload to GitHub") and github_token:
+            if upload_all_to_github(github_token, selected_album):
+                st.sidebar.success("Uploaded all images to GitHub")
+            else:
+                st.sidebar.error("Failed to upload images to GitHub")
     else:
         st.sidebar.warning("Please login as Admin to access admin features")
     
