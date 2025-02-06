@@ -153,6 +153,15 @@ def display_results(matches, cols=3):
                 if match_img is not None:
                     match_img = cv2.cvtColor(match_img, cv2.COLOR_BGR2RGB)
                     st.image(match_img, caption=f"Similarity: {similarity_percent}")
+                    
+                    # เพิ่มปุ่ม Download
+                    with open(match["path"], "rb") as file:
+                        btn = st.download_button(
+                            label="Download",
+                            data=file,
+                            file_name=os.path.basename(match["path"]),
+                            mime="image/jpeg"
+                        )
 
 def create_new_album(album_name):
     album_dir = os.path.join("albums", album_name)
